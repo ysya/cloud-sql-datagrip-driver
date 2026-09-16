@@ -1,0 +1,56 @@
+name: Build Cloud SQL PostgreSQL fat JAR
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Cloud SQL Java Connector version (without leading v)
+        required: true
+        default: "1.30.0"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout upstream source
+        uses: actions/checkout@v4
+        with:
+          repository: GoogleCloudPlatform/cloud-sql-jdbc-socket-factory
+          ref: v${{ inputs.version }}
+          fetch-depth: 1
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Build fat JARs
+        run: mvn -P jar-with-dependencies clean package -DskipTests
+
+      - name: Locate PostgreSQL fat JAR
+        id: jar
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar_path="$(find postgres-socket-factory -type f -name 'postgres-socket-factory-*-jar-with-dependencies.jar' | head -n 1)"
+          if [[ -z "$jar_path" ]]; then
+            echo "PostgreSQL fat JAR not found" >&2
+            find . -type f -name '*jar-with-dependencies.jar' -print
+            exit 1
+          fi
+          echo "path=$jar_path" >> "$GITHUB_OUTPUT"
+          echo "Found: $jar_path"
+
+      - name: Upload PostgreSQL connector artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-socket-factory-${{ inputs.version }}
+          path: ${{ steps.jar.outputs.path }}
+          if-no-files-found: error
+          retention-days: 30
