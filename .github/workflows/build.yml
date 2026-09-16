@@ -2,9 +2,6 @@ name: Publish latest Cloud SQL PostgreSQL fat JAR
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - ".github/workflows/build.yml"
   schedule:
     # Poll upstream once per hour, away from the top of the hour.
     - cron: "17 * * * *"
