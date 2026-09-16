@@ -2,6 +2,9 @@ name: Publish latest Cloud SQL PostgreSQL fat JAR
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/build.yml"
   schedule:
     # Poll upstream once per hour, away from the top of the hour.
     - cron: "17 * * * *"
@@ -93,7 +96,6 @@ jobs:
             exit 1
           fi
 
-          # There should be exactly one PostgreSQL fat JAR for a release build.
           jar_path="${matches[0]}"
           echo "Using: $jar_path"
 
@@ -135,7 +137,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Be idempotent in case two runs observe the same upstream release.
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release $TAG already exists; skipping publish."
             exit 0
