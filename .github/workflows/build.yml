@@ -1,12 +1,7 @@
-name: Build Cloud SQL PostgreSQL fat JAR
+name: Build latest Cloud SQL PostgreSQL fat JAR
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: Cloud SQL Java Connector version (without leading v)
-        required: true
-        default: "1.30.0"
 
 permissions:
   contents: read
@@ -16,11 +11,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Get latest upstream release
+        id: latest
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$(curl -fsSL https://api.github.com/repos/GoogleCloudPlatform/cloud-sql-jdbc-socket-factory/releases/latest | jq -r '.tag_name')"
+          if [[ -z "$tag" || "$tag" == "null" ]]; then
+            echo "Failed to resolve latest upstream release" >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          echo "Latest release: $tag"
+
       - name: Checkout upstream source
         uses: actions/checkout@v4
         with:
           repository: GoogleCloudPlatform/cloud-sql-jdbc-socket-factory
-          ref: v${{ inputs.version }}
+          ref: ${{ steps.latest.outputs.tag }}
           fetch-depth: 1
 
       - name: Set up Java
@@ -50,7 +59,7 @@ jobs:
       - name: Upload PostgreSQL connector artifact
         uses: actions/upload-artifact@v4
         with:
-          name: postgres-socket-factory-${{ inputs.version }}
+          name: postgres-socket-factory-${{ steps.latest.outputs.version }}
           path: ${{ steps.jar.outputs.path }}
           if-no-files-found: error
           retention-days: 30
