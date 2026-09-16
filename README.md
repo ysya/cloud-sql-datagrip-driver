@@ -1,22 +1,41 @@
 # Cloud SQL DataGrip Driver
 
-Builds the Google Cloud SQL Java Connector PostgreSQL fat JAR for use with DataGrip/IntelliJ.
+Prebuilt Google Cloud SQL Java Connector PostgreSQL fat JARs for use with DataGrip/IntelliJ.
 
-Google no longer publishes prebuilt fat JARs for the Java Connector (since v1.14.0), while DataGrip's custom JDBC driver setup benefits from the `jar-with-dependencies` artifact. This repository builds that artifact from the official Google source code in GitHub Actions.
+Google no longer publishes prebuilt fat JARs for the Java Connector (since v1.14.0), while DataGrip's custom JDBC driver setup benefits from the `jar-with-dependencies` artifact. This repository builds that artifact from the official Google source code and publishes it as a GitHub Release.
 
-## Build
+## Automatic releases
 
-1. Open **Actions** → **Build Cloud SQL PostgreSQL fat JAR**.
-2. Choose **Run workflow**.
-3. Enter the upstream Cloud SQL Java Connector version, for example `1.30.0`.
-4. Download the generated `postgres-socket-factory-<version>` artifact from the workflow run.
-5. Unzip it and add the `postgres-socket-factory-*-jar-with-dependencies.jar` file to DataGrip under the PostgreSQL driver's **Driver Files / Additional Files**.
+The GitHub Actions workflow checks the official `GoogleCloudPlatform/cloud-sql-jdbc-socket-factory` releases every 15 minutes.
 
-The workflow checks out the corresponding tag directly from `GoogleCloudPlatform/cloud-sql-jdbc-socket-factory` and runs the upstream-documented command:
+When a new upstream release is detected, it automatically:
 
-```bash
-mvn -P jar-with-dependencies clean package -DskipTests
+1. Checks out the matching official upstream tag.
+2. Builds the fat JAR with:
+
+   ```bash
+   mvn -P jar-with-dependencies clean package -DskipTests
+   ```
+
+3. Extracts the PostgreSQL `jar-with-dependencies` artifact.
+4. Generates a SHA-256 checksum.
+5. Publishes both files as a GitHub Release using the same version tag.
+
+GitHub scheduled workflows can occasionally run late, so publication may not happen exactly 15 minutes after an upstream release.
+
+You can also run the workflow manually from **Actions** if you want to trigger the check immediately.
+
+## Download
+
+Open this repository's **Releases** page and download:
+
+```text
+postgres-socket-factory-<version>-jar-with-dependencies.jar
 ```
+
+The matching `.sha256` file is published alongside it.
+
+Then add the JAR to DataGrip under the PostgreSQL driver's **Driver Files / Additional Files**.
 
 ## DataGrip setup
 
@@ -36,6 +55,10 @@ gcloud auth application-default login
 
 For IAM database authentication, the PostgreSQL password field may still need a non-empty placeholder because of JDBC driver validation; the Cloud SQL connector supplies the IAM authentication token.
 
+## Supply-chain note
+
+The build job checks out the official Google upstream tag with persisted Git credentials disabled. The job that executes upstream Maven code only has read-only repository permissions. Publishing is done in a separate job with `contents: write` permission after the build artifact has been produced.
+
 ## Source
 
-This repository does not modify the Cloud SQL Java Connector source tree. The build workflow fetches a requested upstream release tag and uploads the resulting build artifact for convenience.
+This repository does not modify the Cloud SQL Java Connector source tree. The workflow builds directly from a released upstream tag and links back to the corresponding official release in each generated GitHub Release.
