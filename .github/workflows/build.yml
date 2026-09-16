@@ -3,8 +3,8 @@ name: Publish latest Cloud SQL PostgreSQL fat JAR
 on:
   workflow_dispatch:
   schedule:
-    # Poll upstream every 15 minutes. GitHub scheduled runs may be delayed.
-    - cron: "7,22,37,52 * * * *"
+    # Poll upstream once per hour, away from the top of the hour.
+    - cron: "17 * * * *"
 
 permissions:
   contents: read
@@ -86,12 +86,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          jar_path="$(find postgres-socket-factory -type f -name 'postgres-socket-factory-*-jar-with-dependencies.jar' | head -n 1)"
-          if [[ -z "$jar_path" ]]; then
-            echo "PostgreSQL fat JAR not found" >&2
-            find . -type f -name '*jar-with-dependencies.jar' -print
+          mapfile -t matches < <(find . -type f -name 'postgres-socket-factory-*-jar-with-dependencies.jar' -print)
+          if [[ ${#matches[@]} -eq 0 ]]; then
+            echo "PostgreSQL fat JAR not found. Built fat JARs were:" >&2
+            find . -type f -name '*jar-with-dependencies.jar' -print >&2
             exit 1
           fi
+
+          # There should be exactly one PostgreSQL fat JAR for a release build.
+          jar_path="${matches[0]}"
+          echo "Using: $jar_path"
 
           mkdir -p dist
           asset="dist/postgres-socket-factory-${VERSION}-jar-with-dependencies.jar"
