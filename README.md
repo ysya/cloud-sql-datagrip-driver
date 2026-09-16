@@ -6,7 +6,7 @@ Google no longer publishes prebuilt fat JARs for the Java Connector (since v1.14
 
 ## Automatic releases
 
-The GitHub Actions workflow checks the official `GoogleCloudPlatform/cloud-sql-jdbc-socket-factory` releases every 15 minutes.
+The GitHub Actions workflow checks the official `GoogleCloudPlatform/cloud-sql-jdbc-socket-factory` releases once per hour at minute 17.
 
 When a new upstream release is detected, it automatically:
 
@@ -21,7 +21,7 @@ When a new upstream release is detected, it automatically:
 4. Generates a SHA-256 checksum.
 5. Publishes both files as a GitHub Release using the same version tag.
 
-GitHub scheduled workflows can occasionally run late, so publication may not happen exactly 15 minutes after an upstream release.
+GitHub scheduled workflows can occasionally run late, so publication may not happen exactly at minute 17.
 
 You can also run the workflow manually from **Actions** if you want to trigger the check immediately.
 
